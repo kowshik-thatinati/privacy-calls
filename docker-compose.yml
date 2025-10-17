@@ -1,0 +1,61 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  turn-server:
+    build: ./turn-server
+    container_name: ephemeral_turn
+    ports:
+      - "3478:3478"
+      - "3478:3478/udp"
+      - "5349:5349"
+      - "5349:5349/udp"
+      - "49152-65535:49152-65535/udp"
+    environment:
+      - DETECT_EXTERNAL_IP=yes
+      - STATIC_AUTH_SECRET=${TURN_SECRET}
+    networks:
+      - private_call_net
+    restart: "no"  # Ephemeral - no restart
+
+  signaling-server:
+    build: ./signaling-server
+    container_name: ephemeral_signaling
+    ports:
+      - "3001:3001"
+    depends_on:
+      - turn-server
+    networks:
+      - private_call_net
+    restart: "no"
+    environment:
+      - NODE_ENV=production
+      - TURN_SERVER_URL=turn:turn-server:3478
+
+  gradio-frontend:
+    build: ./frontend
+    container_name: ephemeral_frontend
+    ports:
+      - "7860:7860"
+    depends_on:
+      - signaling-server
+    networks:
+      - private_call_net
+    restart: "no"
+    environment:
+      - SIGNALING_SERVER_URL=ws://signaling-server:3001
+      - TURN_SERVER_URL=turn:turn-server:3478
+      - TURN_SECRET=${TURN_SECRET}
+    volumes:
+      - /tmp/ephemeral_data:/tmp/data  # Ephemeral storage
+
+networks:
+  private_call_net:
+    driver: bridge
+    
+volumes:
+  ephemeral_storage:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs

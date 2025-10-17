@@ -1,0 +1,17 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build and dist
+dist/
+build/
+*.log
+
+# Gradio temporary files
+gradio_cached_examples/
